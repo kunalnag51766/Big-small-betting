@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Big Small Betting Game</title>
+
+    <style>
+        body {
+            font-family: Arial;
+            margin: 20px;
+        }
+
+        .main {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .leftHistory, .rightHistory {
+            width: 260px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .center {
+            text-align: center;
+            flex: 1;
+        }
+
+        .container {
+            display: flex;
+            justify-content: center;
+            gap: 60px;
+        }
+
+        .panel {
+            border: 2px solid #ccc;
+            padding: 20px;
+            width: 220px;
+        }
+
+        .box {
+            display: inline-block;
+            width: 90px;
+            height: 60px;
+            line-height: 60px;
+            border: 2px solid black;
+            margin: 5px;
+            cursor: pointer;
+        }
+
+        .selected {
+            background-color: lightgreen;
+        }
+
+        input {
+            padding: 6px;
+            width: 100px;
+        }
+
+        button {
+            margin-top: 10px;
+            padding: 8px 15px;
+        }
+
+        #timer {
+            font-size: 22px;
+            color: red;
+        }
+
+        .win { color: green; font-weight: bold; }
+        .lose { color: red; font-weight: bold; }
+
+        .bigResult { color: blue; font-weight: bold; }
+        .smallResult { color: orange; font-weight: bold; }
+
+        .warning {
+            color: red;
+            font-weight: bold;
+        }
+
+        .noBetSign {
+            color: red;
+            font-weight: bold;
+            margin-left: 8px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div id="timer">Time: 15 | Token: R-001</div>
+
+<div class="main">
+
+    <div class="leftHistory">
+        <b>Result History</b><br>
+        <div id="resultHistory"></div>
+    </div>
+
+    <div class="center">
+
+        <h2>Points: <span id="points">1000</span></h2>
+
+        <div class="container">
+
+            <div class="panel">
+                <h3>Bet A</h3>
+                <div id="bigA" class="box">BIG</div>
+                <div id="smallA" class="box">SMALL</div>
+                <br>
+                <input type="number" id="amountA">
+                <br>
+                <button onclick="placeBetA()">BET A</button>
+                <h4 id="resultA"></h4>
+            </div>
+
+            <div class="panel">
+                <h3>Bet B</h3>
+                <div id="bigB" class="box">BIG</div>
+                <div id="smallB" class="box">SMALL</div>
+                <br>
+                <input type="number" id="amountB">
+                <br>
+                <button onclick="placeBetB()">BET B</button>
+                <h4 id="resultB"></h4>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="rightHistory">
+        <b>Bet History</b><br>
+        <div id="betHistory"></div>
+    </div>
+
+</div>
+
+<script>
+let points = 1000;
+let multiplier = 1;
+
+let selectedA = "", selectedB = "";
+let betA = null, betB = null;
+
+let timeLeft = 15;
+let tokenId = 1;
+
+let streakType = null;
+let streakCount = 0;
+
+// selection
+document.getElementById("bigA").onclick = () => select("big","A");
+document.getElementById("smallA").onclick = () => select("small","A");
+document.getElementById("bigB").onclick = () => select("big","B");
+document.getElementById("smallB").onclick = () => select("small","B");
+
+function select(choice, type) {
+    if (type === "A") {
+        selectedA = choice;
+        document.getElementById("bigA").classList.remove("selected");
+        document.getElementById("smallA").classList.remove("selected");
+        document.getElementById(choice+"A").classList.add("selected");
+    } else {
+        selectedB = choice;
+        document.getElementById("bigB").classList.remove("selected");
+        document.getElementById("smallB").classList.remove("selected");
+        document.getElementById(choice+"B").classList.add("selected");
+    }
+}
+
+// result
+function getResult() {
+    if (streakType && streakCount > 0) {
+        streakCount--;
+        return streakType;
+    }
+
+    if (Math.random() < 0.3) {
+        streakType = Math.random() < 0.5 ? "big" : "small";
+        streakCount = Math.floor(Math.random()*3)+2;
+        return streakType;
+    }
+
+    return Math.random() < 0.5 ? "big" : "small";
+}
+
+// BET A
+function placeBetA() {
+    let amt = parseInt(document.getElementById("amountA").value);
+    if (!selectedA || !amt || amt > points) return alert("Invalid A");
+    betA = { choice: selectedA, amount: amt };
+
+    document.getElementById("resultA").innerHTML = `<span class="win">BET PLACED</span>`;
+}
+
+// BET B
+function placeBetB() {
+    let amt = parseInt(document.getElementById("amountB").value);
+    if (!selectedB || !amt || amt > points) return alert("Invalid B");
+    betB = { choice: selectedB, amount: amt };
+
+    document.getElementById("resultB").innerHTML = `<span class="win">BET PLACED</span>`;
+}
+
+// TIMER
+setInterval(() => {
+    timeLeft--;
+
+    document.getElementById("timer").innerText =
+        `Time: ${timeLeft} | Token: R-${String(tokenId).padStart(3,"0")}`;
+
+    if (timeLeft === 0) {
+        runRound();
+        timeLeft = 15;
+        tokenId++;
+    }
+}, 1000);
+
+// ROUND
+function runRound() {
+    let result = getResult();
+    let token = `R-${String(tokenId).padStart(3,"0")}`;
+    let before = points;
+
+    let r = document.getElementById("resultHistory");
+
+    let noBet = (!betA && !betB);
+
+    let resDiv = document.createElement("div");
+    resDiv.innerHTML =
+        `${token}${noBet ? '<span class="noBetSign">●</span>' : ''}<br>` +
+        (result === "big"
+            ? `<span class="bigResult">BIG</span>`
+            : `<span class="smallResult">SMALL</span>`);
+
+    r.prepend(resDiv);
+
+    if (betA) {
+        let win = betA.choice === result;
+        if (win) {
+            let winAmt = betA.amount * multiplier;
+            points += winAmt;
+            document.getElementById("resultA").innerHTML =
+                `<span class="win">WIN +${winAmt}</span>`;
+        } else {
+            points -= betA.amount;
+            document.getElementById("resultA").innerHTML =
+                `<span class="lose">LOSE -${betA.amount}</span>`;
+        }
+        addBetHistory("A", betA, result, win, before, points, token);
+    }
+
+    if (betB) {
+        let win = betB.choice === result;
+        if (win) {
+            let winAmt = betB.amount * multiplier;
+            points += winAmt;
+            document.getElementById("resultB").innerHTML =
+                `<span class="win">WIN +${winAmt}</span>`;
+        } else {
+            points -= betB.amount;
+            document.getElementById("resultB").innerHTML =
+                `<span class="lose">LOSE -${betB.amount}</span>`;
+        }
+        addBetHistory("B", betB, result, win, before, points, token);
+    }
+
+    document.getElementById("points").innerText = points;
+
+    betA = null;
+    betB = null;
+}
+
+// HISTORY
+function addBetHistory(label, bet, result, win, before, after, token) {
+    let b = document.getElementById("betHistory");
+
+    let div = document.createElement("div");
+
+    div.innerHTML =
+        `${token}<br>
+        Bet ${label} | ${bet.choice.toUpperCase()} → ${result.toUpperCase()} | ${bet.amount}
+        <br>Balance: ${before} → ${after}
+        <span class="${win ? 'win' : 'lose'}">${win ? 'WIN' : 'LOSE'}</span>
+        <hr>`;
+
+    b.prepend(div);
+}
+</script>
+
+</body>
+</html>
